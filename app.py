@@ -9,13 +9,6 @@ from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 TOTAL_ORDERS = 54
 RATE_LIMIT = 19
 WINDOW_SECONDS = 10
@@ -69,6 +62,18 @@ async def rate_limit_middleware(request: Request, call_next):
         bucket.append(now)
 
     return await call_next(request)
+
+
+# CORS must be the outermost middleware (added last) so that 429 responses
+# returned directly by rate_limit_middleware still get CORS headers, and so
+# Retry-After is visible to cross-origin JS.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["Retry-After"],
+)
 
 
 @app.post("/orders")
